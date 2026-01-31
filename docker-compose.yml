@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    env_file:
+      - .env     # ← Correct, because .env is next to docker-compose.yml
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  flask:
+    build:
+      context: ./flask_service
+    container_name: flask_service
+    restart: always
+    env_file:
+    - .env
+    depends_on:
+    - db
+    ports:
+    - "5001:5001"
+    volumes:
+    - ./flask_service:/app/flask_service
+    - ./uploads:/app/uploads
+
+
+  fastapi:
+    build:
+      context: ./fastapi_service
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env     # ← Correct
+    ports:
+      - "${FASTAPI_PORT}:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./fastapi_service:/app
+
+  streamlit:
+    build:
+      context: ./streamlit_frontend
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env     # ← Correct
+    ports:
+      - "8501:8501"
+    depends_on:
+      - flask
+      - fastapi
+    volumes:
+      - ./streamlit_frontend:/app
+
+volumes:
+  pgdata:
